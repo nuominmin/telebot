@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -66,6 +67,20 @@ func NewBot(pref Settings) (*Bot, error) {
 	return bot, nil
 }
 
+// NewBotWithOptions allows creating a bot with token and additional flexible configuration settings.
+func NewBotWithOptions(token string, settings ...SettingFunc) (*Bot, error) {
+	if token == "" {
+		return nil, fmt.Errorf("token is empty")
+	}
+
+	pref := Settings{Token: token}
+	for i := 0; i < len(settings); i++ {
+		settings[i](&pref)
+	}
+
+	return NewBot(pref)
+}
+
 // Bot represents a separate Telegram bot instance.
 type Bot struct {
 	Me      *User
@@ -122,6 +137,59 @@ type Settings struct {
 
 	// Offline allows to create a bot without network for testing purposes.
 	Offline bool
+}
+
+type SettingFunc func(*Settings)
+
+func WithSetting(s *Settings) SettingFunc {
+	return func(opts *Settings) {
+		opts = s
+	}
+}
+
+func WithSettingProxy(u string) SettingFunc {
+	return func(opts *Settings) {
+		uri, err := url.Parse(u)
+		if err != nil {
+			return
+		}
+		WithSettingClient(&http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(uri),
+			},
+			Timeout: time.Minute,
+		})(opts)
+	}
+}
+
+func WithSettingUrl(u string) SettingFunc {
+	return func(opts *Settings) {
+		opts.URL = u
+	}
+}
+
+func WithSettingPoller(p *LongPoller) SettingFunc {
+	return func(opts *Settings) {
+		opts.Poller = p
+	}
+}
+
+func WithSettingOnError(e func(error, Context)) SettingFunc {
+	return func(opts *Settings) {
+		opts.OnError = e
+	}
+}
+
+func WithSettingClient(c *http.Client) SettingFunc {
+	return func(opts *Settings) {
+		opts.Client = c
+	}
+}
+
+func WithSettingParseMode(m ParseMode) SettingFunc {
+	return func(opts *Settings) {
+		opts.ParseMode = m
+	}
 }
 
 var defaultOnError = func(err error, c Context) {
