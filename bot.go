@@ -252,6 +252,10 @@ func (b *Bot) Handle(endpoint interface{}, h HandlerFunc, m ...MiddlewareFunc) {
 		m = appendMiddleware(b.group.middleware, m)
 	}
 
+	if _, ok := b.handlers[end]; ok {
+		panic("telebot: endpoint already defined: " + end)
+	}
+
 	b.handlers[end] = func(c Context) error {
 		return applyMiddleware(h, m...)(c)
 	}
