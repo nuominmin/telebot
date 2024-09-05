@@ -318,15 +318,42 @@ func (t *InlineButton) MarshalJSON() ([]byte, error) {
 
 // With returns a copy of the button with data.
 func (t *InlineButton) With(data string) *InlineButton {
-	return &InlineButton{
+	ib := t.Copy()
+	ib.Data = data
+	return ib
+}
+
+// Copy returns a copy of the button
+func (t *InlineButton) Copy() *InlineButton {
+	ib := &InlineButton{
 		Unique:          t.Unique,
 		Text:            t.Text,
 		URL:             t.URL,
+		Data:            t.Data,
 		InlineQuery:     t.InlineQuery,
 		InlineQueryChat: t.InlineQueryChat,
 		Login:           t.Login,
-		Data:            data,
+		CallbackGame:    t.CallbackGame,
+		Pay:             t.Pay,
 	}
+
+	if t.InlineQueryChosenChat != nil {
+		ib.InlineQueryChosenChat = &SwitchInlineQuery{
+			Query:             t.InlineQueryChosenChat.Query,
+			AllowUserChats:    t.InlineQueryChosenChat.AllowUserChats,
+			AllowBotChats:     t.InlineQueryChosenChat.AllowBotChats,
+			AllowGroupChats:   t.InlineQueryChosenChat.AllowGroupChats,
+			AllowChannelChats: t.InlineQueryChosenChat.AllowChannelChats,
+		}
+	}
+
+	if t.WebApp != nil {
+		ib.WebApp = &WebApp{
+			URL: t.WebApp.URL,
+		}
+	}
+
+	return ib
 }
 
 func (b Btn) Reply() *ReplyButton {
